@@ -5,8 +5,6 @@ import glob
 import pandas as pd
 from tqdm import tqdm
 from itertools import product
-from functools import partial
-from multiprocessing import Pool, set_start_method
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -208,6 +206,89 @@ def remove_directory_tree(start_directory: str):
     os.rmdir(start_directory)
 
 
+def maximum_variant(blast_df: pd.DataFrame) -> pd.DataFrame:
+    # Ensure we don't modify the original DataFrame
+    df = blast_df.copy()
+
+    # Sort to ensure tie-breaking order: lowest evalue, highest pident
+    df_sorted = df.sort_values(
+        by=["Contig", "evalue", "pident"], ascending=[True, True, False]
+    )
+
+    # Keep only the top match for each Contig and sseqid
+    top_matches = df_sorted.groupby(["Contig", "sseqid"], as_index=False).first()
+
+    # For each Contig-sseqid, get the max pident (vectorized)
+    max_pident = top_matches.groupby(["Contig", "sseqid"], as_index=False)[
+        "pident"
+    ].max()
+
+    # Pivot to get sseqid as columns, Contig as rows
+    gene_summary = max_pident.pivot(
+        index="Contig", columns="sseqid", values="pident"
+    ).reset_index()
+
+    # Save to CSV
+    gene_summary.to_csv("output/variant_identity_table.csv", sep=";", index=False)
+
+    # Copy and prepare the DataFrame
+    gene_summary_index = gene_summary.set_index("Contig")
+
+    # Identify gene groups from column names
+    # genes = [col for col in blast_output.columns]
+    genes = os.listdir("target")
+    genes = [x.split(".fa")[0] for x in genes]
+    gene_groups = list({col.split("_")[0].split("(")[0] for col in genes})
+
+    existing_cols = set(gene_summary_index.columns)
+
+    group_dfs = []
+
+    for gene_group in gene_groups:
+
+        # genes belonging to this family
+        group_cols = [
+            col for col in genes if col.split("_")[0].split("(")[0] == gene_group
+        ]
+
+        # keep only columns that exist in dataframe
+        present_cols = [c for c in group_cols if c in existing_cols]
+
+        if present_cols:
+            group_df = gene_summary_index[present_cols]
+
+            max_vals = group_df.max(axis=1)
+
+            valid_rows = group_df.notna().any(axis=1)
+            max_cols = pd.Series(index=group_df.index, dtype=object)
+            max_cols.loc[valid_rows] = group_df.loc[valid_rows].idxmax(axis=1)
+        else:
+            # gene family not found in any sequence
+            max_vals = pd.Series(index=gene_summary_index.index, dtype=float)
+            max_cols = pd.Series(index=gene_summary_index.index, dtype=object)
+
+        summary_df = pd.DataFrame(
+            {f"{gene_group}": max_cols, f"{gene_group}_identity": max_vals},
+            index=gene_summary_index.index,
+        )
+
+        group_dfs.append(summary_df)
+
+    all_genes = pd.concat(group_dfs, axis=1)
+    all_genes = all_genes.reindex(sorted(all_genes.columns), axis=1)
+
+    all_genes.to_csv("output/maximum_variant.csv", sep=";")
+
+    # ---- presence/absence matrix ----
+    # identity_cols = [c for c in all_genes.columns if c.endswith("_identity")]
+    gene_cols = [c for c in all_genes.columns if not c.endswith("_identity")]
+
+    all_genes_names = all_genes[gene_cols]
+
+    out_df = all_genes_names.notna().astype(int)
+    out_df.to_csv("output/presence_absence_table.csv")
+
+
 def blast_files():
     """
     Main function that runs the blast and filtering.
@@ -232,24 +313,24 @@ def blast_files():
 
     print("\nChecking gene presence in input FASTAs...\n")
 
-    # Run BLAST in parallel
-    results = []
-    with ThreadPoolExecutor(max_workers=n_jobs) as executor:
-        future_to_pair = {
-            executor.submit(run_blast_pair, pair, id_thresh, in_dir, "target"): pair
-            for pair in all_pairs
-        }
-        for future in tqdm(as_completed(future_to_pair), total=job_total):
-            pair = future_to_pair[future]
-            try:
-                results.append(future.result())
-            except Exception as e:
-                print(f"Error running BLAST for {pair}: {e}")
+    # # Run BLAST in parallel
+    # results = []
+    # with ThreadPoolExecutor(max_workers=n_jobs) as executor:
+    #     future_to_pair = {
+    #         executor.submit(run_blast_pair, pair, id_thresh, in_dir, "target"): pair
+    #         for pair in all_pairs
+    #     }
+    #     for future in tqdm(as_completed(future_to_pair), total=job_total):
+    #         pair = future_to_pair[future]
+    #         try:
+    #             results.append(future.result())
+    #         except Exception as e:
+    #             print(f"Error running BLAST for {pair}: {e}")
 
-    print(f"\nFinished {job_total} BLAST jobs.")
+    # print(f"\nFinished {job_total} BLAST jobs.")
 
-    # Merge all the outputs
-    merge_blast_outputs(max_workers=args.jobs)
+    # # Merge all the outputs
+    # merge_blast_outputs(max_workers=args.jobs)
 
     # Filter out the bad hits
     print("\nRemoving spurious hits\n")
@@ -260,10 +341,10 @@ def blast_files():
     ) * 100
     blast_thres = blast_thres.loc[blast_thres["scov"] >= cov_thresh]
     blast_thres = blast_thres.sort_values(
-        by=["qseqid", "score"], ascending=[True, False]
+        by=["qseqid", "pident"], ascending=[True, False]
     )
 
-    # Apply per qseqid
+    # Create a top blast hit file
     blast_filtered = blast_thres.groupby("qseqid", group_keys=False).apply(
         filter_overlaps
     )
@@ -289,15 +370,29 @@ def blast_files():
     )
 
     # Save and remove intermediate files
-    blast_filtered.to_csv("output/gene_out.csv", index=False)
+    blast_filtered.to_csv("output/top_hits_raw.csv", index=False)
     if not keep_files:
         print("\nRemoving intermediate files\n")
         remove_directory_tree("output/intermediate")
-        os.remove("output/full_blast_output.csv")
 
-    print("\nFinished annotating genes associated with hypervirulance")
-    print("in Klebsiella pneumoniae\n")
-    print("Thanks you for using this pipeline!")
+    # Create maximum variant file
+    maximum_variant(blast_thres.rename(columns={"qseqid": "Contig"}))
+
+    print(
+        """
+        Finished annotating genes associated with hypervirulance in Klebsiella pneumoniae
+
+        Thank you for using this pipeline!
+
+        If you use this pipeline in your research, please cite the following publication:
+
+        Vendrik KEW, Teunis G, Anema F, Landman F, de Haan A, Bos J, Witteveen S,
+        Schoffelen AF, de Greeff SC, Kuijper EJ, Hendrickx APA, Notermans DW;
+        hvKp study group. Genomic epidemiology of putative hypervirulent Klebsiella
+        pneumoniae species complex in Dutch patients, January-December 2022.
+        Microbiol Spectr. 2026 Feb 3;14(2):e0225925. doi: 10.1128/spectrum.02259-25.
+        """
+    )
 
 
 if __name__ == "__main__":
