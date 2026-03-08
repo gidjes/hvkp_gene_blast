@@ -5,7 +5,11 @@ This is a pipeline in snakemake in order to run a blast on a set of large sequen
 
 ## Installation
 
-[]
+```bash
+git clone https://github.com/gidjes/hvkp_gene_blast.git
+conda env create -f environment.yml
+conda activate hvkp_blast
+```
 
 Also ensure [blastn is installed](https://www.ncbi.nlm.nih.gov/books/NBK569861/) and available in your path/environment.
 
@@ -15,7 +19,7 @@ Place the query (input) sequences in the 'input' directory and the subject (targ
 
 subsequently run the following:
 ```bash
-python scripts/main.py -i path/to/fastas/
+python scripts/main.py -i path/to/fastas/ 
 ```
 
 ## License

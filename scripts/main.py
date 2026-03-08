@@ -171,9 +171,7 @@ def blast_files():
     id_thresh = args.identity
     cov_thresh = args.coverage
     n_jobs = args.jobs
-    keep_files = (
-        args.keep_intermediate_files
-    )  # currently unused, could control intermediate CSV retention
+    keep_files = args.keep_intermediate_files
 
     approved_extensions = (".fasta", ".fa", ".fas", ".fna", ".ffn", ".faa")
 
@@ -202,7 +200,7 @@ def blast_files():
 
     print(f"\nFinished {job_total} BLAST jobs.")
 
-    merge_blast_outputs()
+    merge_blast_outputs(max_workers=args.jobs)
 
     print("\nRemoving spurious hits\n")
     blast_out = pd.read_csv("output/full_blast_output.csv", sep=",")
