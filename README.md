@@ -35,7 +35,11 @@ The pipeline accepts the following command-line arguments:
 | `--keep_intermediate_files` | `-ki` | flag | False | Keep intermediate CSV files instead of deleting them |
 
 
-[![Cite this repository](https://img.shields.io/badge/cite-CITATION.cff-blue)](CITATION.cff)
+## Citation
+
+If you use this pipeline in your research, please cite the following publication:
+
+Vendrik KEW, Teunis G, Anema F, Landman F, de Haan A, Bos J, Witteveen S, Schoffelen AF, de Greeff SC, Kuijper EJ, Hendrickx APA, Notermans DW; hvKp study group. *Genomic epidemiology of putative hypervirulent Klebsiella pneumoniae species complex in Dutch patients, January-December 2022.* Microbiol Spectr. 2026 Feb 3;14(2):e0225925. doi: [10.1128/spectrum.02259-25](https://doi.org/10.1128/spectrum.02259-25).  
 
 
 ## License

@@ -52,7 +52,27 @@ def parse_args():
     return parser.parse_args()
 
 
-def run_blast_pair(pair, identity: int, in_dir: str, target_dir: str):
+def run_blast_pair(pair: tuple, identity: int, in_dir: str, target_dir: str) -> str:
+    """
+    Function to run a single blast between a pair of FASTAs
+
+    Parameters
+    ----------
+    pair : tuple
+        tuple containing each member of the pair as an element
+    identity : int
+        threshold to apply on the hit identity value
+    in_dir : str
+        directory where the first FASTA file is stored
+    target_dir : str
+        directory where the second FASTA file is stored
+
+    Returns
+    -------
+    str
+        output message for which pair was run
+    """
+    # Seperate the pair
     query, subject = pair
     query_base = os.path.splitext(os.path.basename(query))[0]
     subject_base = os.path.splitext(os.path.basename(subject))[0]
@@ -89,6 +109,15 @@ def run_blast_pair(pair, identity: int, in_dir: str, target_dir: str):
 
 
 def merge_blast_outputs(max_workers: int = 4):
+    """
+    Merges all the individual blast output files into one
+
+    Parameters
+    ----------
+    max_workers : int, optional
+        number of parallel jobs, by default 4
+
+    """
     output_file = "output/full_blast_output.csv"
     log_path = "logs/file_join.log"
     os.makedirs("logs", exist_ok=True)
@@ -140,7 +169,20 @@ def merge_blast_outputs(max_workers: int = 4):
 
 
 # Function to filter overlapping hits for each qseqid
-def filter_overlaps(group):
+def filter_overlaps(group: pd.DataFrame) -> pd.DataFrame:
+    """
+    Filters
+
+    Parameters
+    ----------
+    group : pd.DataFrame
+        dataframe containing all hits from one contig
+
+    Returns
+    -------
+    pd.DataFrame
+        dataframe filtered for overlapping hits
+    """
     kept_hits = []
     for _, row in group.iterrows():
         overlap = False
@@ -167,6 +209,10 @@ def remove_directory_tree(start_directory: str):
 
 
 def blast_files():
+    """
+    Main function that runs the blast and filtering.
+    """
+    # Collect input arguments
     args = parse_args()
     in_dir = args.input
     id_thresh = args.identity
@@ -174,6 +220,7 @@ def blast_files():
     n_jobs = args.jobs
     keep_files = args.keep_intermediate_files
 
+    # Possible file extensions that can be run
     approved_extensions = (".fasta", ".fa", ".fas", ".fna", ".ffn", ".faa")
 
     # Collect queries and targets
@@ -201,8 +248,10 @@ def blast_files():
 
     print(f"\nFinished {job_total} BLAST jobs.")
 
+    # Merge all the outputs
     merge_blast_outputs(max_workers=args.jobs)
 
+    # Filter out the bad hits
     print("\nRemoving spurious hits\n")
     blast_out = pd.read_csv("output/full_blast_output.csv", sep=",")
     blast_thres = blast_out.loc[blast_out["pident"] >= id_thresh]
@@ -219,6 +268,7 @@ def blast_files():
         filter_overlaps
     )
 
+    # Make column names more human readable
     blast_filtered = blast_filtered.rename(
         columns={
             "file_name": "Fasta",
@@ -238,6 +288,7 @@ def blast_files():
         }
     )
 
+    # Save and remove intermediate files
     blast_filtered.to_csv("output/gene_out.csv", index=False)
     if not keep_files:
         print("\nRemoving intermediate files\n")
