@@ -236,7 +236,7 @@ def maximum_variant(blast_df: pd.DataFrame) -> pd.DataFrame:
 
     # Identify gene groups from column names
     # genes = [col for col in blast_output.columns]
-    genes = os.listdir("target")
+    genes = os.listdir("targets")
     genes = [x.split(".fa")[0] for x in genes]
     gene_groups = list({col.split("_")[0].split("(")[0] for col in genes})
 
@@ -306,31 +306,31 @@ def blast_files():
 
     # Collect queries and targets
     queries = [x for x in os.listdir(in_dir) if x.endswith(approved_extensions)]
-    targets = [x for x in os.listdir("target") if x.endswith(approved_extensions)]
+    targets = [x for x in os.listdir("targets") if x.endswith(approved_extensions)]
 
     all_pairs = list(product(queries, targets))
     job_total = len(all_pairs)
 
     print("\n\tChecking gene presence in input FASTAs...\n")
 
-    # # Run BLAST in parallel
-    # results = []
-    # with ThreadPoolExecutor(max_workers=n_jobs) as executor:
-    #     future_to_pair = {
-    #         executor.submit(run_blast_pair, pair, id_thresh, in_dir, "target"): pair
-    #         for pair in all_pairs
-    #     }
-    #     for future in tqdm(as_completed(future_to_pair), total=job_total):
-    #         pair = future_to_pair[future]
-    #         try:
-    #             results.append(future.result())
-    #         except Exception as e:
-    #             print(f"Error running BLAST for {pair}: {e}")
+    # Run BLAST in parallel
+    results = []
+    with ThreadPoolExecutor(max_workers=n_jobs) as executor:
+        future_to_pair = {
+            executor.submit(run_blast_pair, pair, id_thresh, in_dir, "targets"): pair
+            for pair in all_pairs
+        }
+        for future in tqdm(as_completed(future_to_pair), total=job_total):
+            pair = future_to_pair[future]
+            try:
+                results.append(future.result())
+            except Exception as e:
+                print(f"Error running BLAST for {pair}: {e}")
 
-    # print(f"\nFinished {job_total} BLAST jobs.")
+    print(f"\nFinished {job_total} BLAST jobs.")
 
-    # # Merge all the outputs
-    # merge_blast_outputs(max_workers=args.jobs)
+    # Merge all the outputs
+    merge_blast_outputs(max_workers=args.jobs)
 
     # Filter out the bad hits
     print("\tRemoving spurious hits\n")
