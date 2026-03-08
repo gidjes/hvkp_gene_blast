@@ -311,7 +311,7 @@ def blast_files():
     all_pairs = list(product(queries, targets))
     job_total = len(all_pairs)
 
-    print("\nChecking gene presence in input FASTAs...\n")
+    print("\n\tChecking gene presence in input FASTAs...\n")
 
     # # Run BLAST in parallel
     # results = []
@@ -333,7 +333,7 @@ def blast_files():
     # merge_blast_outputs(max_workers=args.jobs)
 
     # Filter out the bad hits
-    print("\nRemoving spurious hits\n")
+    print("\tRemoving spurious hits\n")
     blast_out = pd.read_csv("output/full_blast_output.csv", sep=",")
     blast_thres = blast_out.loc[blast_out["pident"] >= id_thresh]
     blast_thres["scov"] = (
@@ -346,7 +346,7 @@ def blast_files():
 
     # Create a top blast hit file
     blast_filtered = blast_thres.groupby("qseqid", group_keys=False).apply(
-        filter_overlaps
+        filter_overlaps, include_groups=False
     )
 
     # Make column names more human readable
@@ -372,7 +372,7 @@ def blast_files():
     # Save and remove intermediate files
     blast_filtered.to_csv("output/top_hits_raw.csv", index=False)
     if not keep_files:
-        print("\nRemoving intermediate files\n")
+        print("Removing intermediate files\n")
         remove_directory_tree("output/intermediate")
 
     # Create maximum variant file
