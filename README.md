@@ -35,6 +35,9 @@ The pipeline accepts the following command-line arguments:
 | `--keep_intermediate_files` | `-ki` | flag | False | Keep intermediate CSV files instead of deleting them |
 
 
+[![Cite this repository](https://img.shields.io/badge/cite-CITATION.cff-blue)](CITATION.cff)
+
+
 ## License
 
 MIT License
