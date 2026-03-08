@@ -44,6 +44,7 @@ def parse_args():
 
     parser.add_argument(
         "--keep_intermediate_files",
+        "-ki",
         action="store_true",
         help="Keep intermediate files",
     )

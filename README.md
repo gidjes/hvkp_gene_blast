@@ -1,6 +1,6 @@
-# Mass_blast
+# HvKp Gene Blast
 
-This is a pipeline in snakemake in order to run a blast on a set of large sequences and then organise these outputs.
+This is a pipeline to detect the presence of genes associated with Hypervirulent Klebsiella pneumoniae in a set of FASTA files. It uses blast to check all input FASTAs with a database of 8,718 gene variants and determines the best type of detected variants.
 
 
 ## Installation
@@ -11,16 +11,29 @@ conda env create -f environment.yml
 conda activate hvkp_blast
 ```
 
-Also ensure [blastn is installed](https://www.ncbi.nlm.nih.gov/books/NBK569861/) and available in your path/environment.
+Ensure [blastn is installed](https://www.ncbi.nlm.nih.gov/books/NBK569861/) and available in your path if installation through conda fails.
 
 ## Usage
 
-Place the query (input) sequences in the 'input' directory and the subject (target) sequences in the 'target' directory. If you want to blast the sequence set to itself then leave the 'target' directory empty.
+Place the FASTAs to check in a directory together.
 
 subsequently run the following:
 ```bash
 python scripts/main.py -i path/to/fastas/ 
 ```
+
+## Parameters
+
+The pipeline accepts the following command-line arguments:
+
+| Parameter | Short Flag | Type | Default | Description |
+|-----------|------------|------|---------|-------------|
+| `--input` | `-i` | str | *required* | Input directory containing FASTA files |
+| `--identity` | `-id` | int | 90 | Percent identity cut-off for detecting genes |
+| `--coverage` | `-cv` | int | 80 | Gene coverage threshold (percent of gene length) |
+| `--jobs` | `-n` | int | 1 | Number of parallel jobs to run |
+| `--keep_intermediate_files` | `-ki` | flag | False | Keep intermediate CSV files instead of deleting them |
+
 
 ## License
 
