@@ -1,6 +1,6 @@
 # HvKp Gene Blast
 
-This is a pipeline to detect the presence of genes associated with Hypervirulent Klebsiella pneumoniae in a set of FASTA files. It uses blast to check all input FASTAs with a database of 8,718 gene variants. Finally, it determines the best hit from each gene group and provides presence/absence tables of the highest non-spurious hits.
+This is a pipeline to detect the presence of genes associated with Hypervirulent *Klebsiella pneumoniae* in a set of FASTA files. It uses blast to check all input FASTAs with a database of 8,718 gene variants. Finally, it determines the best hit from each gene group and provides presence/absence tables of the highest non-spurious hits.
 
 
 ## Installation
