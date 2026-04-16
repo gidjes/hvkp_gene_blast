@@ -9,9 +9,12 @@ This is a pipeline to detect the presence of genes associated with Hypervirulent
 git clone https://github.com/gidjes/hvkp_gene_blast.git
 conda env create -f environment.yml
 conda activate hvkp_blast
+unzip virulence_genes.zip
 ```
 
 Ensure [blastn is installed](https://www.ncbi.nlm.nih.gov/books/NBK569861/) and available in your path if installation through conda fails.
+
+
 
 ## Usage
 

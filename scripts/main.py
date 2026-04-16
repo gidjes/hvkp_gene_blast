@@ -236,7 +236,7 @@ def maximum_variant(blast_df: pd.DataFrame) -> pd.DataFrame:
 
     # Identify gene groups from column names
     # genes = [col for col in blast_output.columns]
-    genes = os.listdir("targets")
+    genes = os.listdir("virulence_genes")
     genes = [x.split(".fa")[0] for x in genes]
     gene_groups = list({col.split("_")[0].split("(")[0] for col in genes})
 
@@ -306,7 +306,9 @@ def blast_files():
 
     # Collect queries and targets
     queries = [x for x in os.listdir(in_dir) if x.endswith(approved_extensions)]
-    targets = [x for x in os.listdir("targets") if x.endswith(approved_extensions)]
+    targets = [
+        x for x in os.listdir("virulence_genes") if x.endswith(approved_extensions)
+    ]
 
     all_pairs = list(product(queries, targets))
     job_total = len(all_pairs)
@@ -317,7 +319,9 @@ def blast_files():
     results = []
     with ThreadPoolExecutor(max_workers=n_jobs) as executor:
         future_to_pair = {
-            executor.submit(run_blast_pair, pair, id_thresh, in_dir, "targets"): pair
+            executor.submit(
+                run_blast_pair, pair, id_thresh, in_dir, "virulence_genes"
+            ): pair
             for pair in all_pairs
         }
         for future in tqdm(as_completed(future_to_pair), total=job_total):
@@ -346,7 +350,7 @@ def blast_files():
 
     # Create a top blast hit file
     blast_filtered = blast_thres.groupby("qseqid", group_keys=False).apply(
-        filter_overlaps, include_groups=False
+        filter_overlaps,
     )
 
     # Make column names more human readable
@@ -380,7 +384,7 @@ def blast_files():
 
     print(
         """
-        Finished annotating genes associated with hypervirulance in Klebsiella pneumoniae
+        Finished annotating genes associated with hypervirulence in Klebsiella pneumoniae
 
         Thank you for using this pipeline!
 

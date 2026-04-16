@@ -6,3 +6,4 @@ dependencies:
   - blast
   - pandas
   - tqdm
+  - unzip
